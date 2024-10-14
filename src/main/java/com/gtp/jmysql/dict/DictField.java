@@ -5,11 +5,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DictField {
+public class DictField implements Serializable {
     private DictColumn dictColumn;
     private Integer prefixLen;
 }

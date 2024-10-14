@@ -13,99 +13,67 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MysqlClient {
-
-    public NettyClientHandler client = null;
-
-    private static ExecutorService executorService = Executors.newCachedThreadPool();
-    private String host;
-    private Integer port;
+    private final String host;
+    private final int port;
 
     public MysqlClient(String host, int port) {
         this.host = host;
         this.port = port;
-
-        start();
     }
 
-    public void start() {
-        client = new NettyClientHandler();
-        Bootstrap b = new Bootstrap();
+    public void sendMessage(String message) throws InterruptedException {
         EventLoopGroup group = new NioEventLoopGroup();
-        b.group(group)
-                .channel(NioSocketChannel.class)
-                .option(ChannelOption.TCP_NODELAY, true)
-                .handler(new ChannelInitializer<SocketChannel>() {
-                    protected void initChannel(SocketChannel socketChannel) throws Exception {
-                        socketChannel.pipeline().addLast(new StringDecoder());
-                        socketChannel.pipeline().addLast(new StringEncoder());
-                        socketChannel.pipeline().addLast(client);
-                    }
-                });
-
         try {
-            b.connect(host, port).sync();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            Bootstrap bootstrap = new Bootstrap();
+            bootstrap.group(group)
+                    .channel(NioSocketChannel.class)
+                    .remoteAddress(new InetSocketAddress(host, port))
+                    .handler(new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        protected void initChannel(SocketChannel ch) throws Exception {
+                            ch.pipeline().addLast(new StringDecoder());
+                            ch.pipeline().addLast(new StringEncoder());
+                            ch.pipeline().addLast(new ChannelInboundHandlerAdapter() {
+                                @Override
+                                public void channelRead(ChannelHandlerContext ctx, Object result) throws Exception {
+                                    System.out.println(result);
+                                }
+                            });
+                        }
+                    });
+
+            Channel channel = bootstrap.connect().sync().channel();
+            ChannelFuture future = channel.writeAndFlush(message + "\r\n");
+            future.sync(); // 等待写操作完成
+
+            // 等待服务器的响应
+            ChannelFuture closeFuture = channel.closeFuture();
+            closeFuture.sync();
+        } finally {
+            group.shutdownGracefully();
         }
     }
 
-    public String sendMessage(String message) throws InterruptedException, ExecutionException {
-        client.sendMessage(message);
-        return (String)executorService.submit(client).get();
-    }
-
-    static public class NettyClientHandler extends ChannelInboundHandlerAdapter implements Callable {
-        private ChannelHandlerContext context;
-        private String message;
-        private String result;
-
-        @Override
-        public void channelActive(ChannelHandlerContext ctx) throws Exception {
-            context = ctx;
-        }
-
-        @Override
-        public synchronized void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-            result = msg.toString();
-            notify();
-        }
-
-        public synchronized Object call() throws Exception {
-            context.writeAndFlush(this.message);
-            wait();
-            return result;
-        }
-
-        public void sendMessage(String message) {
-            this.message = message;
-        }
-    }
-
-    public static void main(String[] args) throws InterruptedException, InterruptedException,
-            ExecutionException, IOException {
-        Terminal terminal = TerminalBuilder.builder()
-                .system(true)
-                .build();
-
-        LineReader lineReader = LineReaderBuilder.builder()
-                .terminal(terminal)
-                .build();
-
+    public static void main(String[] args) throws InterruptedException {
         MysqlClient client = new MysqlClient("localhost", 18080);
-        terminal.writer().append("连接成功");
 
-        String prompt = "mysql> ";
-        while (true) {
-            terminal.writer().append("\n");
-            terminal.flush();
-            final String line = lineReader.readLine(prompt);
-            System.out.println(client.sendMessage(line));
-        }
+        String createSql = """
+                CREATE TABLE t1 (
+                  id int,
+                  a varchar(10),
+                  b varchar(10),
+                  c varchar(10),
+                  d int,
+                  PRIMARY KEY (id)
+                );
+                """;
+        client.sendMessage(createSql);
     }
 }
