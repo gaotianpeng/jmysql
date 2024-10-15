@@ -28,7 +28,7 @@ public class HaInnodb {
 
         // 生成新id
         int tableId = SystemDict.getInstance().addMaxTableId();
-        int spaceId = SystemDict.getInstance().getMaxSpaceId();
+        int spaceId = SystemDict.getInstance().addMaxSpaceId();
 
         // 创建ibd文件，返回文件路径
         Path tableSpacePath = SpaceUtil.createUserTableSpace(tableName);

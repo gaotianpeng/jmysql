@@ -11,7 +11,7 @@ public class FspHdrPage extends Page {
     public final static int FSP_NOT_USED = 4;
     public final static int FSP_SIZE = 8; // 当前表空间占用的页面数，占4个字节
 
-    public int read_fsp_size() {
+    public int get_fsp_size() {
         return ByteBufferUtil.mach_read_from_4(pageByteBuffer, FSP_HEADER + FSP_SIZE);
     }
 

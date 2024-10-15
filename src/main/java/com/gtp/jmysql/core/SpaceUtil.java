@@ -1,7 +1,5 @@
 package com.gtp.jmysql.core;
 
-import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.io.file.FileMode;
 import com.gtp.jmysql.dict.DictTable;
 import com.gtp.jmysql.dict.SystemDict;
 import com.gtp.jmysql.page.FspHdrPage;
@@ -49,5 +47,13 @@ public class SpaceUtil {
     public static Path getPathBySpaceId(int spaceId) {
         DictTable dictTable = SystemDict.getInstance().getSpaceIdTables().get(spaceId);
         return Paths.get(dictTable.getPath());
+    }
+
+    public static int getNextPageNo(int spaceId) {
+        FspHdrPage hdrPage = getFspHdrPage(spaceId);
+        int pageNo = hdrPage.get_fsp_size();
+        hdrPage.set_fsp_size(pageNo + 1);
+        PageUtil.flushPages(hdrPage);
+        return pageNo;
     }
 }
