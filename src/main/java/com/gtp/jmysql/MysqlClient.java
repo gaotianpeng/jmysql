@@ -64,16 +64,19 @@ public class MysqlClient {
     public static void main(String[] args) throws InterruptedException {
         MysqlClient client = new MysqlClient("localhost", 18080);
 
-        String createSql = """
-                CREATE TABLE t1 (
-                  id int,
-                  a varchar(10),
-                  b varchar(10),
-                  c varchar(10),
-                  d int,
-                  PRIMARY KEY (id)
-                );
+//        String sql = """
+//                CREATE TABLE t1 (
+//                  id int,
+//                  a varchar(10),
+//                  b varchar(10),
+//                  c varchar(10),
+//                  d int,
+//                  PRIMARY KEY (id)
+//                );
+//                """;
+        String sql = """
+                insert into t1(id, a, b, c, d) values(3, 'a3', 'b3', 'c3', 200);
                 """;
-        client.sendMessage(createSql);
+        client.sendMessage(sql);
     }
 }

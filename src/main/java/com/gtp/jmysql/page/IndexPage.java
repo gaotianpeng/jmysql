@@ -4,11 +4,12 @@ import com.gtp.jmysql.core.ByteBufferUtil;
 
 import static com.gtp.jmysql.core.ByteBufferUtil.mach_read_from_2;
 import static com.gtp.jmysql.core.ByteBufferUtil.mach_write_to_2;
+import static com.gtp.jmysql.core.RecUtil.REC_NEXT;
 
 public class IndexPage extends Page{
     // Page 头相关，共36个字节
     public final static int PAGE_HEADER = 38; // PageHeader从Page中的第38个字节开始
-    public final static int PAGE_N_DIR_SLOTS = 0; // 前2个字节用来示Slot的数量
+    public final static int PAGE_N_DIR_SLOTS = 0; // 占2个字节用来示Slot的数量
     public final static int PAGE_HEAP_TOP = 2; // page中第几个字节开始空闲的，可以用来存记录
     public final static int PAGE_N_HEAP = 4; // 当前Page总共有多少条记录
 
@@ -61,6 +62,15 @@ public class IndexPage extends Page{
 
     public void set_n_heap(int n_heap) {
         page_header_set_field(PAGE_N_HEAP, n_heap | (0x8000 & page_header_get_field(PAGE_N_HEAP)));
+    }
+
+    public int rec_get_next_offs(int rec) {
+        // 返回下一条记录的位置，源码中next_offset存的是相对位置，我们改成绝对位置（但相对的是当前page）
+        return mach_read_from_2(pageByteBuffer, rec - REC_NEXT);
+    }
+
+    public void rec_set_next_offs_new(int rec, int next) {
+        mach_write_to_2(pageByteBuffer, rec - REC_NEXT, next);
     }
 
     private void page_header_set_field(int field, int val) {

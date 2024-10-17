@@ -1,5 +1,6 @@
 package com.gtp.jmysql;
 
+import com.gtp.jmysql.dict.SystemDict;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -16,6 +17,7 @@ public class MysqlServer {
     }
 
     public void run() throws Exception {
+        SystemDict.getInstance().deserialize();
         /*
             设置了两个事件循环组：
                 bossGroup 用于接受连接

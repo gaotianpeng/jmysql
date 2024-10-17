@@ -1,5 +1,7 @@
 package com.gtp.jmysql;
 
+import com.gtp.jmysql.core.DTuple;
+import com.gtp.jmysql.core.DTupleUtil;
 import com.gtp.jmysql.core.PageUtil;
 import com.gtp.jmysql.core.SpaceUtil;
 import com.gtp.jmysql.dict.DictColumn;
@@ -7,6 +9,8 @@ import com.gtp.jmysql.dict.DictTable;
 import com.gtp.jmysql.dict.SystemDict;
 
 import com.gtp.jmysql.page.FspHdrPage;
+import com.gtp.jmysql.page.IndexPage;
+import com.gtp.jmysql.page.Page;
 import net.sf.jsqlparser.statement.alter.Alter;
 import net.sf.jsqlparser.statement.create.table.ColumnDefinition;
 import net.sf.jsqlparser.statement.create.table.CreateTable;
@@ -77,7 +81,22 @@ public class HaInnodb {
     }
 
     public void insert(Insert insertStmt) {
+        // 插入到哪个表空间的哪一页
+        String tableName = insertStmt.getTable().getName();
+        DictTable dictTable = SystemDict.getInstance().getNameTables().get(tableName);
 
+        // 将insert转成DTuple，里面包含了插入的字段和数据
+        DTuple dTuple = DTupleUtil.convert(insertStmt);
+
+        // 先写死页号，后面实现B+树后，通过B+树来定位要插入的pageNo, 并且还要判断页是否满足了
+        int pageNo = 1;
+        if (SpaceUtil.getFspHdrPage(dictTable.getSpaceId()).get_fsp_size() == 1) {
+            pageNo = PageUtil.createPage(dictTable.getSpaceId());
+        }
+        IndexPage indexPage = PageUtil.readPage(dictTable.getSpaceId(), pageNo);
+
+        // 插入记录
+        PageUtil.insert_row(indexPage, dTuple);
     }
 
     public void selectOne(PlainSelect plainSelectStmt) {
